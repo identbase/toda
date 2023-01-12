@@ -1,2 +1,2 @@
-# Dart TODA interface library in C
-C Library for interfacing with the TODA protocol(s)
+# TODA protocol library written in dart
+Dart Library for interfacing with the TODA protocol(s)
