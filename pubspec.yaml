@@ -1,0 +1,12 @@
+name: toda
+description: An implementation of the TODA protocol(s)
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: '>=2.18.6 <3.0.0'
+
+dependencies:
+
+dev_dependencies:
+
