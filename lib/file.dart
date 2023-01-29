@@ -1,6 +1,3 @@
-
 class TodaFile {
-  TodaFile() {
-
-  }
+  TodaFile() {}
 }

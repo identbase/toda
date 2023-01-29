@@ -1,46 +1,127 @@
-import 'dart:convert';
-// import 'dart:typed_data'; 
-import 'package:crypto/crypto.dart';
+// import 'dart:convert';
+import 'dart:ffi';
+import 'dart:mirrors';
+import 'dart:typed_data';
+// import 'package:crypto/crypto.dart';
 
+// Helper class to make a single byte code more readable
+class Code implements ByteData {
+  final ByteData _data = new ByteData(1);
 
-class Hash {
-  List<int> _hashValue;
-  List<int> _serializedValue;
-  static String moniker;
-  static String description;
-
-  static int FIXED_ALGO_CODE_LENGTH = 1;
-  static int FIXED_HASH_VALUE_LENGTH = 0; // Not implemented in base class.
-
-  
-  Hash(List<int> hashValue) {
-    if (hashValue.length != Hash.getHashValueLength()) {
-      throw ArgumentError('Cannot set hash value of wrong length');
-    }
-    this._hashValue = hashValue;
+  Code(int value) {
+    _data.setUint8(0, value);
   }
+
+  int getInt8(int offset) => _data.getInt8(0);
+  int getInt16(int offset, [Endian endian = Endian.big]) => getInt8(0);
+  int getInt32(int offset, [Endian endian = Endian.big]) => getInt8(0);
+  int getInt64(int offset, [Endian endian = Endian.big]) => getInt8(0);
+  void setInt8(int offset, int value) => _data.setInt8(0, value);
+  int getUint8(int offset) => _data.getUint8(0);
+  int getUint16(int offset, [Endian endian = Endian.big]) => getUint8(0);
+  int getUint32(int offset, [Endian endian = Endian.big]) => getUint8(0);
+  int getUint64(int offset, [Endian endian = Endian.big]) => getUint8(0);
+  void setUint8(int offset, int value) => _data.setUint8(0, value);
+
+  static Code NULL = new Code(0x00);
+  static Code UNIT = new Code(0xFF);
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError("Cannot use method on Code");
+      // 'Got the ${invocation.memberName} with arguments ${invocation.positionalArguments}';
+}
+
+abstract class Hash {
+  static int FIXED_ALGO_CODE_LENGTH = 1;
+  static int FIXED_HASH_VALUE_LENGTH = 0;
+
+  late Uint8List _hash;
+  Uint8List _value;
+  int get length;
+
+  Uint8List serialize();
+  bool isNull() => true;
+
+  Hash(this._value);
+}
+
+class BaseHash implements Hash {
+  int length = 0;
+  Uint8List _hash = Uint8List(0);
+  Uint8List _value = Uint8List(0);
+
+  Uint8List serialize() {
+    return _hash;
+  }
+
+  static hash(Uint8List value) {
+    throw UnimplementedError("Not implemented");
+  }
+
+  static BaseHash parse(Uint8List hash) {
+    throw UnimplementedError("Not implemented");
+  }
+
+  bool isNull() => true;
+
+}
+
+class NullHash extends BaseHash {
+  static Code code = Code.NULL;
+  static Symbol moniker = Symbol("NULL");
+  static String description = "A reserved value for special cases";
+
+  static NullHash hash(Uint8List value) {
+    throw UnsupportedError("Cannot hash data with NULL algorithm");
+  }
+
+  static NullHash parse(Uint8List hash) {
+    return new NullHash();
+  }
+}
+
+class UnitHash extends NullHash {
+  static Code code = Code.UNIT;
+  static Symbol moniker = Symbol("UNIT");
+  static String description = "A reserved value for special cases";
+
+  static UnitHash hash(Uint8List value) {
+    throw UnsupportedError("Cannot hash data with NULL algorithm");
+  }
+
+  static UnitHash parse(Uint8List hash) {
+    return new UnitHash();
+  }
+}
+
+
+
+/*
+class BaseHash implements Hash {
+  List<Uint8> _hash;
+
+  static String moniker = "";
+  static String description = "";
 
   static hash(String value) {
     throw UnimplementedError('Not implemented');
   }
 
-  serialize() {
+  List<Uint8> serialize() {
     // 1 Byte, Algorithm Code.
     // n Bytes, Hash Value.
-    return this._serializedValue;
+    return this._hash;
   }
 
   numBytes() {
-    return this._serializedValue.length;
+    return this._value.length;
   }
 
   getHashValue() {
     return this._hashValue;
   }
 
-  static getHashValueLength() {
-    throw UnimplementedError('Not implemented');
-  }
 
   static parse(List<int> raw) {
     return this.createFromAlgoCode(raw[0], raw.sublist(1));
@@ -68,9 +149,6 @@ class Hash {
     return this._hashByAlgoCode[algoCode] || null;
   }
 
-  isNull() {
-    return false;
-  }
 }
 
 class NullHash extends Hash {
@@ -147,3 +225,5 @@ class Sha512Hash extends ShaHash {
 Hash.registerType(NullHash);
 Hash.registerType(Sha256Hash);
 Hash.registerType(Sha512Hash);
+
+*/

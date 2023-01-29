@@ -6,10 +6,7 @@ class Atom {
   Packet _packet;
   List<int> _serializedValue;
 
-
-  Atom(Hash hash, Packet packet) {
-    
-  }
+  Atom(Hash hash, Packet packet) {}
 
   Atom(List<int> hashRaw, List<int> packetRaw) {
     this._hash = Hash.parse(hashRaw);
@@ -44,5 +41,3 @@ class Atom {
     return new Atom(hash, packet);
   }
 }
-
-
