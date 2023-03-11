@@ -1,43 +1,27 @@
+import 'dart:typed_data';
+
 import './hash.dart';
 import './packet.dart';
 
 class Atom {
   Hash _hash;
   Packet _packet;
-  List<int> _serializedValue;
 
-  Atom(Hash hash, Packet packet) {}
+  Atom(this._hash, this._packet);
 
-  Atom(List<int> hashRaw, List<int> packetRaw) {
-    this._hash = Hash.parse(hashRaw);
-    this._packet = Packet.parse(packetRaw);
-  }
+  static Atom fromAlgoAndPacket(Code algo, Uint8List packet) {
+    Hash hash;
 
-  serialize() {
-    return this._serializedValue;
-  }
+    if (algo == Code.NULL) {
+      hash = NullHash.hash(packet);  
+    } else if (algo == Code.SHA_256) {
+      hash = ShaHash256.hash(packet);
+    } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
+      throw UnimplementedError("Blake3 is unimplemented");
+    } else {
+      throw ArgumentError("Unsupported algorithm");
+    }
 
-  numBytes() {
-    return this._serializedValue.length;
-  }
-
-  getHash() {
-    return this._hash;
-  }
-
-  getPacket() {
-    return this._packet;
-  }
-
-  static parse(List<int> raw) {
-    const hash = Hash.parse(raw);
-    const packet = Packet.parse(
-      raw.sublist(
-        hash.numBytes(),
-        hash.numBytes() + Packet.CONTENT_OFFSET + Packet.MAX_CONTENT_SIZE,
-      ),
-    );
-
-    return new Atom(hash, packet);
+    return new Atom(hash, Packet.parse(packet));
   }
 }

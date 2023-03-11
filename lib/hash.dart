@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 
 // Helper class to make a single byte code more readable
-class Code implements ByteData {
+class Code /* implements ByteData */ {
   final ByteData _data = new ByteData(1);
 
   Code(int value) {
@@ -39,11 +39,11 @@ abstract class Hash {
   static int FIXED_ALGO_CODE_LENGTH = 1;
   static int FIXED_HASH_VALUE_LENGTH = 0;
 
-  late Uint8List _hash;
+  // late Uint8List _hash;
   Uint8List _value;
   int get length;
 
-  Uint8List serialize();
+  Uint8List toUint8List();
   bool isNull() => true;
 
   Hash(this._value);
@@ -51,11 +51,11 @@ abstract class Hash {
 
 class BaseHash implements Hash {
   int length = 0;
-  Uint8List _hash = Uint8List(0);
+  // Uint8List _hash = Uint8List(0);
   Uint8List _value = Uint8List(0);
 
-  Uint8List serialize() {
-    return _hash;
+  Uint8List toUint8List() {
+    return _value;
   }
 
   static hash(Uint8List value) {
@@ -107,7 +107,7 @@ class ShaHash256 extends BaseHash {
   static String description = "The 256 bit SHA-2 digest in FIPS PUB ISO-4";
 
   @override
-  Uint8List _hash = Uint8List(ShaHash256.FIXED_HASH_VALUE_LENGTH);
+  Uint8List _value = Uint8List(ShaHash256.FIXED_HASH_VALUE_LENGTH);
 
   static ShaHash256 hash(Uint8List value) {
     Digest digest = sha256.convert(value.toList());
@@ -121,36 +121,36 @@ class ShaHash256 extends BaseHash {
     return new ShaHash256(hash);
   }
 
-  ShaHash256(Uint8List _hash);
+  ShaHash256(this._value);
 }
 
 
-class Blake3Hash extends BaseHash {
-  static Code code = Code.BLAKE3_256;
-  static Symbol moniker = Symbol("BLAKE3_256");
-  static String description = "The 256 bit Blake3 digest in";
-}
+// class Blake3Hash extends BaseHash {
+//   static Code code = Code.BLAKE3_256;
+//   static Symbol moniker = Symbol("BLAKE3_256");
+//   static String description = "The 256 bit Blake3 digest in";
+// }
 
-class Blake3Hash256 extends Blake3Hash implements Hash {
-  static Code code = Code.BLAKE3_256;
-  static Symbol moniker = Symbol("BLAKE3_256");
-  static String description = "The 256 bit Blake3 digest in";
-}
+// class Blake3Hash256 extends Blake3Hash implements Hash {
+//   static Code code = Code.BLAKE3_256;
+//   static Symbol moniker = Symbol("BLAKE3_256");
+//   static String description = "The 256 bit Blake3 digest in";
+// }
 
-class Blake3Hash512 extends Blake3Hash {
-  static Code code = Code.BLAKE3_512;
-  static Symbol moniker = Symbol("BLAKE3_512");
-  static String description = "The 512 bit Blak3 digest in";
-
-  static Blake3Hash512 hash(Uint8List value) {
-
-  }
-
-  static Blake3Hash512 parse(Uint8List hash) {
-
-  }
-
-}
+// class Blake3Hash512 extends Blake3Hash {
+//   static Code code = Code.BLAKE3_512;
+//   static Symbol moniker = Symbol("BLAKE3_512");
+//   static String description = "The 512 bit Blak3 digest in";
+// 
+//   static Blake3Hash512 hash(Uint8List value) {
+// 
+//   }
+// 
+//   static Blake3Hash512 parse(Uint8List hash) {
+// 
+//   }
+// 
+// }
 
 
 /*
@@ -164,7 +164,7 @@ class BaseHash implements Hash {
     throw UnimplementedError('Not implemented');
   }
 
-  List<Uint8> serialize() {
+  List<Uint8> toUint8List() {
     // 1 Byte, Algorithm Code.
     // n Bytes, Hash Value.
     return this._hash;

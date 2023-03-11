@@ -15,7 +15,8 @@ void main() {
       expect(NullHash.code.getInt8(0), equals(0x00));
       expect(NullHash.moniker, equals(#NULL));
       expect(
-          NullHash.description, equals("A reserved value for special cases"));
+        NullHash.description, equals("A reserved value for special cases")
+      );
     });
 
     test("isNull", () {
@@ -27,10 +28,11 @@ void main() {
 
   group("UnitHash", () {
     test("static properties", () {
-      expect(UnitHash.code.getInt8(0), equals(0xFF));
-      expect(UnitHash.moniker, equals(#NULL));
+      expect(UnitHash.code.getUint8(0), equals(0xFF));
+      expect(UnitHash.moniker, equals(#UNIT));
       expect(
-          UnitHash.description, equals("A reserved value for special cases"));
+        UnitHash.description, equals("A reserved value for special cases")
+      );
     });
 
     test("isNull", () {
