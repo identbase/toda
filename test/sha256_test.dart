@@ -25,7 +25,7 @@ void main() {
       Digest digest = sha256.convert(bytes);
 
       expect(
-        String.fromCharCodes(hash.toUint8List()),
+        hash.toString(),
         equals(String.fromCharCodes(digest.bytes))
       ); 
     });

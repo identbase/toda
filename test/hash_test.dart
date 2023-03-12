@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:test/test.dart';
 
 import '../lib/hash.dart';
@@ -20,7 +22,7 @@ void main() {
     });
 
     test("isNull", () {
-      var hash = new NullHash();
+      var hash = new NullHash(Uint8List(0));
 
       expect(hash.isNull(), equals(true));
     });
@@ -36,7 +38,7 @@ void main() {
     });
 
     test("isNull", () {
-      var hash = new UnitHash();
+      var hash = new UnitHash(Uint8List(0));
 
       expect(hash.isNull(), equals(true));
     });

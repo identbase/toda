@@ -29,10 +29,20 @@ class Shape /* implements ByteData */ {
   static Shape HASHES = new Shape(0x61);
   static Shape PAIRTRIE = new Shape(0x62);
 
+  Uint8List toUint8List() {
+    Uint8List shape = Uint8List(Packet.CONTENT_LENGTH_OFFSET);
+    shape.setRange(0, 1, [this.getUint8(0)]);
+    return shape;
+  }
+
   // @override
   noSuchMethod(Invocation invocation) =>
       throw UnsupportedError("Cannot use method on Shape");
       // 'Got the ${invocation.memberName} with arguments ${invocation.positionalArguments}';
+
+  bool operator ==(other) {
+    return other is Shape && getUint8(0) == other.getUint8(0);
+  }
 }
 
 abstract class Packet {
@@ -85,7 +95,13 @@ class BasePacket implements Packet {
   Uint8List _content = Uint8List(0);
 
   Uint8List toUint8List() {
-    return _content;
+    BytesBuilder bytes = BytesBuilder();
+
+    bytes.add(_shape);
+    bytes.add(_contentLength);
+    bytes.add(_content);
+
+    return bytes.toBytes();
   }
 
   int lengthInBytes() {
@@ -120,58 +136,164 @@ class BasicTwistPacket extends BasePacket {
   static Shape moniker = Shape.BASIC_TWIST;
   static String description = 'Two concatonated hashes';
 
-  // Hash getBodyHash() {
-  // 
-  // }
+  static BasicTwistPacket fromHashes(Uint8List body, Uint8List stats) {
+    Uint8List contentLength = Uint8List(Packet.CONTENT_LENGTH_BYTES);
+    BytesBuilder bb = BytesBuilder();
 
-  // Hash getStatsHash() {
-  // 
-  // }
+    bb.add(body);
+    bb.add(stats);
+
+    contentLength.buffer.asUint32List(0, 1)[0] = body.length + stats.length;
+    return BasicTwistPacket(
+      Shape.BASIC_TWIST.toUint8List(),
+      contentLength,
+      bb.toBytes(),
+    );
+  }
+
+  Hash getBodyHash() {
+    // Body is always first, making retrieval easier.
+    Uint8List algo = Uint8List.fromList(this._content.getRange(0, 1).toList());
+    Code code = new Code(algo.first);
+
+    if (code == Code.NULL) {
+      return new NullHash(Uint8List(0));
+    } else if (code == Code.UNIT) {
+      return new UnitHash(Uint8List(0));
+    } else if (code == Code.SHA_256) {
+      Uint8List body = Uint8List.fromList(this._content.getRange(0, ShaHash256.FIXED_HASH_VALUE_LENGTH + Hash.FIXED_ALGO_CODE_LENGTH).toList());
+      return new ShaHash256(body);
+    } else if (code == Code.BLAKE3_256 || code == Code.BLAKE3_512) {
+      throw UnimplementedError("Blake3 hashes unimplemented");
+    } else {
+      throw UnsupportedError("Unsupported hash algorithm");
+    }
+  }
+
+  Hash getStatsHash() {
+    Hash body = getBodyHash();
+    Uint8List bodyData = body.toUint8List();
+    Uint8List algo = Uint8List.fromList(this._content.getRange(bodyData.length, bodyData.length + Hash.FIXED_ALGO_CODE_LENGTH).toList());
+    Code code = new Code(algo.first);
+
+    if (code == Code.NULL) {
+      return new NullHash(Uint8List(0));
+    } else if (code == Code.UNIT) {
+      return new UnitHash(Uint8List(0));
+    } else if (code == Code.SHA_256) {
+      Uint8List stats = Uint8List.fromList(this._content.getRange(bodyData.length + Hash.FIXED_ALGO_CODE_LENGTH, this._content.length).toList());
+      return new ShaHash256(stats);
+    } else if (code == Code.BLAKE3_256 || code == Code.BLAKE3_512) {
+      throw UnimplementedError("Blake3 hashes unimplemented");
+    } else {
+      throw UnsupportedError("Unsupported hash algorithm");
+    }
+   
+  }
   
   BasicTwistPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
-  /*
-    {
-      Uint8List shape = Uint8List(Packet.CONTENT_LENGTH_OFFSET);
-      shape.setRange(0, 1, [Shape.BASIC_TWIST.getUint8(0)]);
-
-      Uint8List length = Uint8List(Packet.CONTENT_LENGTH_BYTES);
-
-      BasePacket(shape, length, content);
-    }
-  */
 }
 
 class BasicBodyPacket extends BasePacket {
   static Shape moniker = Shape.BASIC_BODY;
   static String description = 'Six concatenated hashes';
 
-  // Hash getPrevHash() {
-  // 
-  // }
+  static BasicBodyPacket fromHashes(Uint8List prev, Uint8List teth, Uint8List shld, Uint8List reqs, Uint8List rigg, Uint8List cargo) {
+    Uint8List contentLength = Uint8List(Packet.CONTENT_LENGTH_BYTES);
+    BytesBuilder bb = BytesBuilder();
 
-  // Hash getTethHash() {
-  // 
-  // }
+    bb.add(prev);
+    bb.add(teth);
+    bb.add(shld);
+    bb.add(reqs);
+    bb.add(rigg);
+    bb.add(cargo);
 
-  // Hash getShldHash() {
-  // 
-  // }
+    contentLength.buffer.asUint32List(0, 1)[0] = prev.length
+        + teth.length
+        + shld.length
+        + reqs.length
+        + rigg.length
+        + cargo.length;
 
-  // Hash getRequirementsTrie() {
-  // 
-  // }
+    return BasicBodyPacket(
+      Shape.BASIC_BODY.toUint8List(),
+      contentLength,
+      bb.toBytes(),
+    );
+  }
+  
 
-  // Hash getRiggingTrie() {
-  // 
-  // }
+  Hash getPrevHash() {
+    // prev is always first.
+    return Hash.fromUint8List(this._content);
+  }
 
-  // Hash getCargoTrie() {
-  // 
-  // }
+  // TODO: Make this not O(n^n)...
+  Hash getTethHash() {
+    Hash prev = getPrevHash();
+
+    return Hash.fromUint8List(Uint8List.fromList(this._content.getRange(prev.length, this._content.length).toList()));
+  }
+
+  // TODO: Make this not O(n^n)...
+  Hash getShldHash() {
+    Hash prev = getPrevHash();
+    Hash teth = getTethHash(); 
+    
+    return Hash.fromUint8List(
+      Uint8List.fromList(
+        this._content.getRange(prev.length + teth.length, this._content.length).toList()
+      )
+    );
+  }
+
+  Hash getRequirementsHash() {
+    Hash prev = getPrevHash();
+    Hash teth = getTethHash();
+    Hash shld = getShldHash();
+    
+    return Hash.fromUint8List(
+      Uint8List.fromList(
+        this._content.getRange(prev.length + teth.length + shld.length, this._content.length).toList()
+      )
+    );
+  }
+
+  Hash getRiggingHash() {
+    Hash prev = getPrevHash();
+    Hash teth = getTethHash();
+    Hash shld = getShldHash();
+    Hash reqs = getRequirementsHash();
+    
+    return Hash.fromUint8List(
+      Uint8List.fromList(
+        this._content.getRange(prev.length + teth.length + shld.length + reqs.length, this._content.length).toList()
+      )
+    );
+  }
+
+  Hash getCargoHash() {
+    Hash prev = getPrevHash();
+    Hash teth = getTethHash();
+    Hash shld = getShldHash();
+    Hash reqs = getRequirementsHash();
+    Hash rigg = getRiggingHash();
+    
+    return Hash.fromUint8List(
+      Uint8List.fromList(
+        this._content.getRange(prev.length + teth.length + shld.length + reqs.length + rigg.length, this._content.length).toList()
+      )
+    );
+  }
 
   BasicBodyPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
-      : super(shape, contentLength, content);
+      : super(shape, contentLength, content) {
+    this._shape = shape;
+    this._contentLength = contentLength;
+    this._content = content;
+  }
 }
 
 

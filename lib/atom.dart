@@ -4,10 +4,10 @@ import './hash.dart';
 import './packet.dart';
 
 class Atom {
-  Hash _hash;
-  Packet _packet;
+  Hash hash;
+  Packet packet;
 
-  Atom(this._hash, this._packet);
+  Atom(this.hash, this.packet);
 
   static Atom fromAlgoAndPacket(Code algo, Uint8List packet) {
     Hash hash;
