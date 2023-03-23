@@ -2,8 +2,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 
-import '../lib/packet.dart';
-import '../lib/hash.dart';
+import '../lib/toda.dart';
 
 void main() {
   group("BasicBodyPacket", () {

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:test/test.dart';
 
-import '../lib/hash.dart';
+import '../lib/toda.dart';
 
 void main() {
   group("ShaHash256", () {

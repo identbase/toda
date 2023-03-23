@@ -302,6 +302,10 @@ class ArbitraryPacket extends BasePacket {
   static Shape moniker = Shape.ARB;
   static String description = 'Arbitrrary binary content';
 
+  Uint8List getContents() {
+    return this._content;
+  }
+
   ArbitraryPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
 }
@@ -310,6 +314,8 @@ class HashesPacket extends BasePacket {
   static Shape moniker = Shape.HASHES;
   static String description = 'A list of one or more hashes';
 
+
+
   HashesPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
 }
@@ -317,6 +323,8 @@ class HashesPacket extends BasePacket {
 class PairTriePacket extends BasePacket {
   static Shape moniker = Shape.PAIRTRIE;
   static String description = 'A map of hashes, expressed as a list of key, value pairs of hashes';
+
+
 
   PairTriePacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
