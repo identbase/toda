@@ -24,4 +24,13 @@ class Atom {
 
     return new Atom(hash, Packet.parse(packet));
   }
+
+  Uint8List toUint8List() {
+    BytesBuilder bb = BytesBuilder();
+
+    bb.add(hash.toUint8List());
+    bb.add(packet.toUint8List());
+
+    return bb.takeBytes();
+  }
 }
