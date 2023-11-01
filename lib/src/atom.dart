@@ -34,3 +34,23 @@ class Atom {
     return bb.takeBytes();
   }
 }
+
+class Lat {
+  List<Atom> atoms = [];
+
+  Lat();
+
+  factory Lat.fromEntries(Iterable<Atom> entries) {
+    Lat lat = Lat();
+
+    for(Atom entry in entries) {
+      lat.atoms.add(entry);
+    }
+
+    return lat;
+  }
+
+  Atom focus() {
+    return atoms.last;
+  }
+}
