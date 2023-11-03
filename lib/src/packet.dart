@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import './hash.dart';
@@ -136,12 +135,12 @@ class BasicTwistPacket extends BasePacket {
   static Shape moniker = Shape.BASIC_TWIST;
   static String description = 'Two concatonated hashes';
 
-  static BasicTwistPacket fromHashes(Uint8List body, Uint8List stats) {
+  static BasicTwistPacket fromHashes(Hash body, Hash stats) {
     Uint8List contentLength = Uint8List(Packet.CONTENT_LENGTH_BYTES);
     BytesBuilder bb = BytesBuilder();
 
-    bb.add(body);
-    bb.add(stats);
+    bb.add(body.toUint8List());
+    bb.add(stats.toUint8List());
 
     contentLength.buffer.asUint32List(0, 1)[0] = body.length + stats.length;
     return BasicTwistPacket(
@@ -152,43 +151,56 @@ class BasicTwistPacket extends BasePacket {
   }
 
   Hash getBodyHash() {
-    // Body is always first, making retrieval easier.
-    Uint8List algo = Uint8List.fromList(this._content.getRange(0, 1).toList());
-    Code code = new Code(algo.first);
+    Uint8List algoData = Uint8List.fromList(_content.getRange(0, 1).toList());
+    Code algo = new Code(algoData.first);
+    Uint8List data = Uint8List(0);
 
-    if (code == Code.NULL) {
-      return new NullHash(Uint8List(0));
-    } else if (code == Code.UNIT) {
-      return new UnitHash(Uint8List(0));
-    } else if (code == Code.SHA_256) {
-      Uint8List body = Uint8List.fromList(this._content.getRange(0, ShaHash256.FIXED_HASH_VALUE_LENGTH + Hash.FIXED_ALGO_CODE_LENGTH).toList());
-      return new ShaHash256(body);
-    } else if (code == Code.BLAKE3_256 || code == Code.BLAKE3_512) {
+    if (algo == Code.NULL) {
+      data = Uint8List.fromList(_content.getRange(1, NullHash.FIXED_HASH_VALUE_LENGTH + 1).toList());
+    } else if (algo == Code.UNIT) {
+      data = Uint8List.fromList(_content.getRange(1, UnitHash.FIXED_HASH_VALUE_LENGTH + 1).toList());
+    } else if (algo == Code.SHA_256) {
+      data = Uint8List.fromList(_content.getRange(1, ShaHash256.FIXED_HASH_VALUE_LENGTH + 1).toList());
+    } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
       throw UnimplementedError("Blake3 hashes unimplemented");
     } else {
       throw UnsupportedError("Unsupported hash algorithm");
     }
+  
+    BytesBuilder builder = BytesBuilder();
+
+    builder.add(algoData);
+    builder.add(data);
+
+    return Hash.parse(builder.toBytes());
   }
 
   Hash getStatsHash() {
-    Hash body = getBodyHash();
-    Uint8List bodyData = body.toUint8List();
-    Uint8List algo = Uint8List.fromList(this._content.getRange(bodyData.length, bodyData.length + Hash.FIXED_ALGO_CODE_LENGTH).toList());
-    Code code = new Code(algo.first);
+    Uint8List bodyAlgoData = Uint8List.fromList(_content.getRange(0, 1).toList());
+    Code bodyAlgo = new Code(bodyAlgoData.first);
+   
+    Uint8List algoData = Uint8List(1);
+    Uint8List data = Uint8List(0); 
 
-    if (code == Code.NULL) {
-      return new NullHash(Uint8List(0));
-    } else if (code == Code.UNIT) {
-      return new UnitHash(Uint8List(0));
-    } else if (code == Code.SHA_256) {
-      Uint8List stats = Uint8List.fromList(this._content.getRange(bodyData.length + Hash.FIXED_ALGO_CODE_LENGTH, this._content.length).toList());
-      return new ShaHash256(stats);
-    } else if (code == Code.BLAKE3_256 || code == Code.BLAKE3_512) {
+    if (bodyAlgo == Code.NULL || bodyAlgo == Code.UNIT) {
+      algoData = Uint8List.fromList(_content.getRange(NullHash.FIXED_HASH_VALUE_LENGTH + 1, NullHash.FIXED_HASH_VALUE_LENGTH + 2).toList());
+      data = Uint8List.fromList(_content.getRange(NullHash.FIXED_HASH_VALUE_LENGTH + 2, _content.lengthInBytes).toList());
+    } else if (bodyAlgo == Code.SHA_256) {
+      algoData = Uint8List.fromList(_content.getRange(ShaHash256.FIXED_HASH_VALUE_LENGTH + 1, ShaHash256.FIXED_HASH_VALUE_LENGTH + 2).toList());
+
+      data = Uint8List.fromList(_content.getRange(ShaHash256.FIXED_HASH_VALUE_LENGTH + 2, _content.lengthInBytes).toList());
+    } else if (bodyAlgo == Code.BLAKE3_256 || bodyAlgo == Code.BLAKE3_512) {
       throw UnimplementedError("Blake3 hashes unimplemented");
     } else {
       throw UnsupportedError("Unsupported hash algorithm");
     }
-   
+
+    BytesBuilder builder = BytesBuilder();
+
+    builder.add(algoData);
+    builder.add(data);
+
+    return Hash.parse(builder.toBytes());
   }
   
   BasicTwistPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
@@ -199,16 +211,16 @@ class BasicBodyPacket extends BasePacket {
   static Shape moniker = Shape.BASIC_BODY;
   static String description = 'Six concatenated hashes';
 
-  static BasicBodyPacket fromHashes(Uint8List prev, Uint8List teth, Uint8List shld, Uint8List reqs, Uint8List rigg, Uint8List cargo) {
+  static BasicBodyPacket fromHashes(Hash prev, Hash teth, Hash shld, Hash reqs, Hash rigg, Hash cargo) {
     Uint8List contentLength = Uint8List(Packet.CONTENT_LENGTH_BYTES);
     BytesBuilder bb = BytesBuilder();
 
-    bb.add(prev);
-    bb.add(teth);
-    bb.add(shld);
-    bb.add(reqs);
-    bb.add(rigg);
-    bb.add(cargo);
+    bb.add(prev.toUint8List());
+    bb.add(teth.toUint8List());
+    bb.add(shld.toUint8List());
+    bb.add(reqs.toUint8List());
+    bb.add(rigg.toUint8List());
+    bb.add(cargo.toUint8List());
 
     contentLength.buffer.asUint32List(0, 1)[0] = prev.length
         + teth.length
@@ -329,53 +341,3 @@ class PairTriePacket extends BasePacket {
   PairTriePacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
 }
-
-
-/*
-  Packet(Uint8 shape, Uint8List content) {
-    _contentLength = Uint8List.fromList([content.length]);
-    _content = Uint8List.fromList(content);
-  }
-
-  serialize() {
-
-    // return this._serializedValue;
-  }
-
-  static parse(List<int> raw) {
-    return this.createFromShapeShape(raw[0], raw.sublist(1));
-  }
-
-  static createFromShapeShape(int shapeShape, List<int> content) {
-    const shape = this.implementFromShapeShape(shapeShape);
-    if (!shape) {
-      throw ArgumentError('Unknown shape code \'$shapeShape\'');
-    }
-    return new shape(content);
-  }
-
-  static List<Map> shapeByShapeShape = [];
-
-  static registerShape(Shape shape) {
-    this._shapeByShapeShape[shape.shapeShape] = shape;
-  }
-
-  static implementFromShapeShape(int shapeShape) {
-    return this._shapeByShapeShape[shapeShape] || null;
-  }
-
-  getContent() {
-    return this._content;
-  }
-
-  getSize() {
-    return this._content.length;
-  }
-}
-*/
-
-// Packet.registerShape(ArbitraryPacket);
-// Packet.registerShape(HashesPacket);
-// Packet.registerShape(PairTriePacket);
-// Packet.registerShape(BasicTwistPacket);
-// Packet.registerShape(BasicBodyPacket);

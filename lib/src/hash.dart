@@ -1,5 +1,4 @@
-// import 'dart:convert';
-// import 'dart:ffi';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -23,7 +22,16 @@ class Code /* implements ByteData */ {
   int getUint64(int offset, [Endian endian = Endian.big]) => getUint8(0);
   void setUint8(int offset, int value) => _data.setUint8(0, value);
 
+  Uint8List toUint8List() {
+    BytesBuilder builder = BytesBuilder();
+
+    builder.add([ _data.getUint8(0) ]);
+
+    return builder.toBytes();
+  }
+
   static Code NULL = new Code(0x00);
+  static Code SYMBOL = new Code(0x22);
   static Code UNIT = new Code(0xFF);
   static Code SHA_256 = new Code(0x41);
   static Code BLAKE3_256 = new Code(0x42);
@@ -49,20 +57,23 @@ abstract class Hash {
   int get length;
 
   Uint8List toUint8List();
+  String toString();
+  String toHex();
   bool isNull() => true;
 
   // `parse` assumes that `hash` is exact size, and no larger/smaller.
   static Hash parse(Uint8List hash) {
     Uint8List algoData = Uint8List.fromList(hash.getRange(0, FIXED_ALGO_CODE_LENGTH).toList());
     Code algo = new Code(algoData.first);
-    Uint8List data = Uint8List.fromList(hash.getRange(FIXED_ALGO_CODE_LENGTH, hash.length).toList());
+
+    Uint8List content = Uint8List.fromList(hash.getRange(FIXED_ALGO_CODE_LENGTH, hash.length).toList());
 
     if (algo == Code.NULL) {
-      return new NullHash(hash);
+      return NullHash();
     } else if (algo == Code.UNIT) {
-      return new UnitHash(hash);
+      return UnitHash();
     } else if (algo == Code.SHA_256) {
-      return new ShaHash256(hash);
+      return ShaHash256(content);
     } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
       throw UnimplementedError("Blake3 hashes unimplemented");
     } else {
@@ -73,24 +84,7 @@ abstract class Hash {
   // `fromUint8List` may not use all of `data`, but we assume the first byte
   // is the algorithm, and take only whats needed after that.
   static Hash fromUint8List(Uint8List data) {
-    Uint8List algoData = Uint8List.fromList(data.getRange(0, FIXED_ALGO_CODE_LENGTH).toList());
-    Code algo = new Code(algoData.first);
-
-    if (algo == Code.NULL) {
-      Uint8List hash = Uint8List.fromList(data.getRange(FIXED_ALGO_CODE_LENGTH, FIXED_ALGO_CODE_LENGTH).toList());
-      return new NullHash(hash);
-    } else if (algo == Code.UNIT) {
-      Uint8List hash = Uint8List.fromList(data.getRange(FIXED_ALGO_CODE_LENGTH, FIXED_ALGO_CODE_LENGTH).toList());
-      
-      return new UnitHash(hash);
-    } else if (algo == Code.SHA_256) {
-      Uint8List hash = Uint8List.fromList(data.getRange(FIXED_ALGO_CODE_LENGTH, FIXED_ALGO_CODE_LENGTH + ShaHash256.FIXED_HASH_VALUE_LENGTH).toList());
-      return new ShaHash256(hash);
-    } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
-      throw UnimplementedError("Blake3 hashes unimplemented");
-    } else {
-      throw UnsupportedError("Unsupported hash algorithm");
-    }
+    return Hash.parse(data);
   }
 
   Hash(this._value);
@@ -98,24 +92,38 @@ abstract class Hash {
 
 class BaseHash implements Hash {
   int length = 0;
-  // Uint8List _hash = Uint8List(0);
+  Uint8List _algo = Uint8List(1);
   Uint8List _value = Uint8List(0);
 
   Uint8List toUint8List() {
-    return _value;
+    BytesBuilder builder = BytesBuilder();
+    
+    builder.add(_algo);
+    builder.add(_value);
+
+    return builder.toBytes();
   }
 
-  bool compare(Hash other) {
-    var list = toUint8List().toList();
-    var otherList = other.toUint8List().toList();
+  String toString() {
+    Uint8List content = toUint8List();
 
-    if (list.length == otherList.length) {
-      return list.every((value) {
-        return otherList.contains(value);
-      });
-    } else {
-      return false;
-    }
+    return String.fromCharCodes(
+      Uint8List.fromList(content.getRange(1, content.length).toList()),
+    );
+  }
+
+  String toHex() {
+    String content = toString();
+
+    return utf8.encode(content).map((c) => c.toRadixString(16)).join();
+  }
+
+  @override
+  bool operator ==(other) {
+    String hex = toHex();
+    String otherHex = (other as BaseHash).toHex();
+
+    return hex == otherHex;
   }
 
   static hash(Uint8List value) {
@@ -128,82 +136,46 @@ class BaseHash implements Hash {
 
   bool isNull() => true;
 
-  BaseHash(this._value);
+  BaseHash(this._algo, this._value);
+}
+
+class SymbolHash extends BaseHash {
+  static int FIXED_HASH_VALUE_LENGTH = 32;
+
+  static Code code = Code.SYMBOL; 
+  static Symbol moniker = Symbol("SYMBOL");
+  static String description = "Arbtrary bytes use for introducing a new name";
+  @override
+  Uint8List _value = Uint8List(SymbolHash.FIXED_HASH_VALUE_LENGTH);
+
+  SymbolHash(Uint8List algo, Uint8List value): super(algo, value);
 }
 
 class NullHash extends BaseHash {
+  static int FIXED_HASH_VALUE_LENGTH = 0;
+
   static Code code = Code.NULL;
   static Symbol moniker = Symbol("NULL");
   static String description = "A reserved value for special cases";
 
-  Uint8List toUint8List() {
-    BytesBuilder bytes = BytesBuilder();
-    Uint8List algo = Uint8List(1);
-    algo.setRange(0, 1, [NullHash.code.getUint8(0)]);
-
-    bytes.add(algo.toList());
-    bytes.add(_value.toList());
-
-    return bytes.toBytes();
-  }
-
-  static NullHash hash(Uint8List value) {
-    throw UnsupportedError("Cannot hash data with NULL algorithm");
-  }
-
-  static NullHash parse(Uint8List hash) {
-    return new NullHash(hash);
-  }
-
-  @override
-  bool operator ==(other) {
-    Uint8List codeData = Uint8List(1);
-    codeData.setRange(0, 1, toUint8List().getRange(0, 1));
-    Code code = new Code(codeData.getRange(0, 1).first);
-
-    // print(toUint8List().toList());
-    // print((other as NullHash).toUint8List().toList());
-    Uint8List otherCodeData = Uint8List(1);
-    otherCodeData.setRange(0, 1, (other as NullHash).toUint8List().getRange(0, 1));
-    Code otherCode = new Code(otherCodeData.getRange(0, 1).first);
-
-    // print(code == otherCode);
-    // print(compare(other));
-
-    return code == otherCode && compare(other);
-
-  }
-
-  NullHash(Uint8List value) : super(value);
+  NullHash() : super(
+    code.toUint8List(),
+    Uint8List(0),
+  );
 }
 
-class UnitHash extends NullHash {
+class UnitHash extends SymbolHash {
+  static int FIXED_HASH_VALUE_LENGTH = 0;
+
   static Code code = Code.UNIT;
   static Symbol moniker = Symbol("UNIT");
   static String description = "A reserved value for special cases";
 
-  Uint8List toUint8List() {
-    BytesBuilder bytes = BytesBuilder();
-    Uint8List algo = Uint8List(1);
-    algo.setRange(0, 1, [UnitHash.code.getUint8(0)]);
-
-    bytes.add(algo.toList());
-    bytes.add(_value.toList());
-
-    return bytes.toBytes();
-  }
-
-  static UnitHash hash(Uint8List value) {
-    throw UnsupportedError("Cannot hash data with NULL algorithm");
-  }
-
-  static UnitHash parse(Uint8List hash) {
-    return new UnitHash(hash);
-  }
-
-  UnitHash(Uint8List value) : super(value);
+  UnitHash() : super(
+    code.toUint8List(),
+    Uint8List(0),
+  );
 }
-
 
 class ShaHash256 extends BaseHash {
   static int FIXED_HASH_VALUE_LENGTH = 32;
@@ -215,39 +187,28 @@ class ShaHash256 extends BaseHash {
   @override
   Uint8List _value = Uint8List(ShaHash256.FIXED_HASH_VALUE_LENGTH);
 
-  Uint8List toUint8List() {
-    BytesBuilder bytes = BytesBuilder();
-    Uint8List algo = Uint8List(1);
-    algo.setRange(0, 1, [ShaHash256.code.getUint8(0)]);
-
-    bytes.add(algo.toList());
-    bytes.add(_value.toList());
-
-    return bytes.toBytes();
-  }
-
-  String toString() {
-    return String.fromCharCodes(_value);
-  }
-
   static ShaHash256 hash(Uint8List value) {
     Digest digest = sha256.convert(value.toList());
 
     Uint8List hash = Uint8List.fromList(digest.bytes);
 
-    return new ShaHash256(hash);
+    return ShaHash256(hash);
   }
 
   static ShaHash256 parse(Uint8List hash) {
-    return new ShaHash256(hash);
+    // Assume this is a proper hash otherwise they would use hash()
+    Uint8List data = Uint8List.fromList(hash.getRange(Hash.FIXED_ALGO_CODE_LENGTH, hash.lengthInBytes).toList());
+
+    return ShaHash256(data);
   }
 
-  ShaHash256(Uint8List value) : super(value) {
+  ShaHash256(Uint8List value) : super(code.toUint8List(), value) {
+    this._algo = code.toUint8List();
     this._value = value;
   }
 }
 
-
+/*
 // class Blake3Hash extends BaseHash {
 //   static Code code = Code.BLAKE3_256;
 //   static Symbol moniker = Symbol("BLAKE3_256");
@@ -274,135 +235,4 @@ class ShaHash256 extends BaseHash {
 //   }
 // 
 // }
-
-
-/*
-class BaseHash implements Hash {
-  List<Uint8> _hash;
-
-  static String moniker = "";
-  static String description = "";
-
-  static hash(String value) {
-    throw UnimplementedError('Not implemented');
-  }
-
-  List<Uint8> toUint8List() {
-    // 1 Byte, Algorithm Code.
-    // n Bytes, Hash Value.
-    return this._hash;
-  }
-
-  numBytes() {
-    return this._value.length;
-  }
-
-  getHashValue() {
-    return this._hashValue;
-  }
-
-
-  static parse(List<int> raw) {
-    return this.createFromAlgoCode(raw[0], raw.sublist(1));
-  }
-
-  static createFromAlgoCode(int algoCode, List<int> hashValue) {
-    const hash = this.implementFromAlgorithmCode(algoCode);
-    if (!hash) {
-      throw ArgumentError('Unknown hash algorithm code \'$algoCode\'');
-    }
-    return new hash(hashValue);
-  }
-
-  static List<Map> _hashByAlgoCode = [];
-
-  static getAlgorithm(int algoCode) {
-    return this._hashByAlgoCode[algoCode);
-  }
-
-  static registerAlgorithm(Hash subclass) {
-    this._hashByAlgoCode[subclass.algoCode] = subclass;
-  }
-
-  static implementFromAlgorithmCode(int algoCode) {
-    return this._hashByAlgoCode[algoCode] || null;
-  }
-
-}
-
-class NullHash extends Hash {
-  static int algoCode = 0x00;
-  static int length = 0;
-  static String moniker = 'NULL';
-  static String description = 'An empty hash'; 
-
-  NullHash() {
-    return super([]);
-  }
-
-  static hash(String value) {
-    throw UnsupportedError('Cannot hash data with a NullHash');
-  }
-
-  static getHashValueLength() {
-    return 0;
-  }
-
-  static parse(List<int> raw) {
-    return new this();
-  }
-
-  isNull() {
-    return true;
-  }
-}
-
-class ShaHash extends Hash {
-  static getHashValueLength() {
-    return this.FIXED_HASH_VALUE_LENGTH;
-  }
-}
-
-class Sha256Hash extends ShaHash {
-  static int algoCode = 0x41;
-  static String moniker = 'SHA256';
-  static String description = 'A 32-bit SHA hash';
-
-  static int FIXED_HASH_VALUE_LENGTH = 32;
-
-  static hash(List<int> value) {
-    return sha256.convert(value).bytes;
-  }
-
-  static parse(List<int> raw) {
-    return new Sha512Hash(raw.sublist(
-        this.FIXED_ALGO_CODE_LENGTH,
-        this.FIXED_ALGO_CODE_LENGTH + this.FIXED_HASH_VALUE_LENGTH,
-    ));
-  }
-}
-
-class Sha512Hash extends ShaHash {
-  static int algoCode = 0x44';
-  static String monkier = 'SHA512';
-  static String description = 'A 64-bit SHA hash';
-
-  static int FIXED_HASH_VALUE_LENGTH = 64;
-
-  static hash(List<int> value) {
-    return sha512.convert(value).bytes;
-  }
-
-  static parse(List<int> raw) {
-    return new Sha512Hash(raw.sublist(
-        this.FIXED_ALGO_CODE_LENGTH,
-        this.FIXED_ALGO_CODE_LENGTH + this.FIXED_HASH_VALUE_LENGTH,
-    ));
-  }
-}
-
-Hash.registerType(NullHash);
-Hash.registerType(Sha256Hash);
-Hash.registerType(Sha512Hash);
-
 */

@@ -4,16 +4,16 @@ import './hash.dart';
 import './packet.dart';
 
 class Atom {
-  Hash hash;
+  Hash identifier;
   Packet packet;
 
-  Atom(this.hash, this.packet);
+  Atom(this.identifier, this.packet);
 
   static Atom fromAlgoAndPacket(Code algo, Uint8List packet) {
     Hash hash;
 
     if (algo == Code.NULL) {
-      hash = NullHash.hash(packet);  
+      hash = NullHash();  
     } else if (algo == Code.SHA_256) {
       hash = ShaHash256.hash(packet);
     } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
@@ -28,10 +28,14 @@ class Atom {
   Uint8List toUint8List() {
     BytesBuilder bb = BytesBuilder();
 
-    bb.add(hash.toUint8List());
+    bb.add(identifier.toUint8List());
     bb.add(packet.toUint8List());
 
     return bb.takeBytes();
+  }
+
+  String toString() {
+    return identifier.toString();
   }
 }
 
@@ -48,6 +52,10 @@ class Lat {
     }
 
     return lat;
+  }
+
+  void withFocus(String hash) {
+
   }
 
   Atom focus() {

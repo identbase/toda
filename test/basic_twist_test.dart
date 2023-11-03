@@ -1,37 +1,30 @@
-import 'dart:typed_data';
-
 import 'package:test/test.dart';
 
-import '../lib/toda.dart';
+import 'package:toda/toda.dart';
 
 void main() {
   group("BasicTwistPacket", () {
     group("create", () {
       test("fromHashes", () {
-        NullHash prev = NullHash(Uint8List(0));
-        NullHash teth = NullHash(Uint8List(0));
-        NullHash shld = NullHash(Uint8List(0));
-        NullHash reqs = NullHash(Uint8List(0));
-        NullHash rigg = NullHash(Uint8List(0));
-        NullHash cargo = NullHash(Uint8List(0));
+        NullHash prev = NullHash();
+        NullHash teth = NullHash();
+        NullHash shld = NullHash();
+        NullHash reqs = NullHash();
+        NullHash rigg = NullHash();
+        NullHash cargo = NullHash();
 
         BasicBodyPacket body = BasicBodyPacket.fromHashes(
-          prev.toUint8List(),
-          teth.toUint8List(),
-          shld.toUint8List(),
-          reqs.toUint8List(),
-          rigg.toUint8List(),
-          cargo.toUint8List(),
+          prev, teth, shld, reqs, rigg, cargo,
         );
 
-        NullHash stats = NullHash(Uint8List(0));
+        Hash bodyHash = ShaHash256.hash(body.toUint8List());
+        NullHash statsHash = NullHash();
 
-        Atom atom = Atom.fromAlgoAndPacket(Code.SHA_256, body.toUint8List());
+        BasicTwistPacket packet = BasicTwistPacket.fromHashes(bodyHash, statsHash);
 
-        BasicTwistPacket packet = BasicTwistPacket.fromHashes(atom.hash.toUint8List(), stats.toUint8List());
-
-        // TODO: May want to add other checks than length here.
         expect(packet.toUint8List().length, equals(39));
+        expect(packet.getBodyHash() == bodyHash, equals(true));
+        expect(packet.getStatsHash() == statsHash, equals(true));
       });
     });
   });
