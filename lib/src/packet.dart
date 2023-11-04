@@ -324,9 +324,37 @@ class ArbitraryPacket extends BasePacket {
 
 class HashesPacket extends BasePacket {
   static Shape moniker = Shape.HASHES;
-  static String description = 'A list of one or more hashes';
+  static String description = 'A list of one or more hashes concatonated';
 
+  List<Hash> getHashes() {
+    List<Hash> list = []; 
+    Uint8List content = _content;
 
+    while(content.lengthInBytes > 0) {
+      int range = 0;
+
+      Uint8List algoData = Uint8List.fromList(content.getRange(0, Hash.FIXED_ALGO_CODE_LENGTH).toList());
+      Code algo = Code(algoData.first);
+   
+      if (algo == Code.NULL || algo == Code.UNIT) {
+        range = 1;
+      } else if (algo == Code.SHA_256) {
+        range = 33;
+      } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
+        throw UnimplementedError("Blake3 hashes unimplemented");
+      } else {
+        throw UnsupportedError("Unsupported hash algorithm");
+      }
+
+      Uint8List data = Uint8List.fromList(content.getRange(0, range).toList());
+
+      list.add(Hash.parse(data));
+
+      content.removeRange(0, range);
+    }
+
+    return list;
+  }
 
   HashesPacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
@@ -336,7 +364,55 @@ class PairTriePacket extends BasePacket {
   static Shape moniker = Shape.PAIRTRIE;
   static String description = 'A map of hashes, expressed as a list of key, value pairs of hashes';
 
+  Map<Hash, Hash> getPairTrie() {
+    List<Hash> list = getHashes();
+    Map<Hash, Hash> map = Map<Hash, Hash>();
 
+    // TODO: Add checks to ensure pairtrie has even number of hashes
+    // TODO: Add checks that the pairtrie is sorted AND does not have duplicate keys
+    for (var i = 0; i < list.length / 2; i ++) {
+      // If we are even index, skip
+      if (i % 2 == 0) {
+        continue;
+      }
+
+      map.addEntries([
+        MapEntry(list[i - 1], list[i]),
+      ]);
+    }
+
+    return map;
+  }
+
+  List<Hash> getHashes() {
+    List<Hash> list = []; 
+    Uint8List content = _content;
+
+    while(content.lengthInBytes > 0) {
+      int range = 0;
+
+      Uint8List algoData = Uint8List.fromList(content.getRange(0, Hash.FIXED_ALGO_CODE_LENGTH).toList());
+      Code algo = Code(algoData.first);
+   
+      if (algo == Code.NULL || algo == Code.UNIT) {
+        range = 1;
+      } else if (algo == Code.SHA_256) {
+        range = 33;
+      } else if (algo == Code.BLAKE3_256 || algo == Code.BLAKE3_512) {
+        throw UnimplementedError("Blake3 hashes unimplemented");
+      } else {
+        throw UnsupportedError("Unsupported hash algorithm");
+      }
+
+      Uint8List data = Uint8List.fromList(content.getRange(0, range).toList());
+
+      list.add(Hash.parse(data));
+
+      content.removeRange(0, range);
+    }
+
+    return list;
+  }
 
   PairTriePacket(Uint8List shape, Uint8List contentLength, Uint8List content)
       : super(shape, contentLength, content);
