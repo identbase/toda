@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:toda/toda.dart';
 
-class Arbitrary extends Atom {
+class Arbitrary extends BaseAtom {
   Hash identifier;
   Packet packet;
 
@@ -26,7 +26,7 @@ class Arbitrary extends Atom {
   }
 }
 
-class Hashes extends Atom {
+class Hashes extends BaseAtom {
   Hash identifier;
   Packet packet;
 
@@ -48,7 +48,7 @@ class Hashes extends Atom {
   }
 }
 
-class PairTrie extends Atom {
+class PairTrie extends BaseAtom {
   Hash identifier;
   Packet packet;
 

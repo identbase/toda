@@ -9,6 +9,8 @@ abstract class Atom {
 
   Map<String, Object?> toMap();
 
+  Uint8List toUint8List();
+
   static Atom fromAlgoAndPacket(Code algo, Uint8List packet) {
     Hash hash;
 

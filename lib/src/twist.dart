@@ -1,6 +1,6 @@
 import 'package:toda/toda.dart';
 
-class Twist extends Atom {
+class Twist extends BaseAtom {
   Hash identifier;
   Packet packet;
 
@@ -20,7 +20,7 @@ class Twist extends Atom {
   }
 }
 
-class TwistBody extends Atom {
+class TwistBody extends BaseAtom {
   Hash identifier;
   Packet packet;
 
