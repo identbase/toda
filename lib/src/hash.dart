@@ -81,8 +81,6 @@ abstract class Hash {
     }
   }
 
-  // `fromUint8List` may not use all of `data`, but we assume the first byte
-  // is the algorithm, and take only whats needed after that.
   static Hash fromUint8List(Uint8List data) {
     return Hash.parse(data);
   }

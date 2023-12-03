@@ -1,8 +1,7 @@
 name: toda
 description: An implementation of the TODA protocol(s)
 version: 0.0.1
-homepage:
-
+publish_to: none
 environment:
   sdk: '>=2.18.6 <3.0.0'
 
