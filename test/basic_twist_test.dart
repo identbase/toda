@@ -22,6 +22,8 @@ void main() {
 
         BasicTwistPacket packet = BasicTwistPacket.fromHashes(bodyHash, statsHash);
 
+        print(packet.toMap());
+
         expect(packet.toUint8List().length, equals(39));
         expect(packet.getBodyHash() == bodyHash, equals(true));
         expect(packet.getStatsHash() == statsHash, equals(true));

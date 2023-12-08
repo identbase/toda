@@ -33,6 +33,14 @@ class Shape /* implements ByteData */ {
     shape.setRange(0, 1, [this.getUint8(0)]);
     return shape;
   }
+  
+  String toString() {
+    return _data.toString();
+  }
+
+  int toNumber() {
+    return _data.getUint8(0);
+  }
 
   // @override
   noSuchMethod(Invocation invocation) =>
@@ -132,7 +140,7 @@ class BasePacket implements Packet {
 
 // Rigging proof packets
 class BasicTwistPacket extends BasePacket {
-  static Shape moniker = Shape.BASIC_TWIST;
+  static Shape shape = Shape.BASIC_TWIST;
   static String description = 'Two concatonated hashes';
 
   static BasicTwistPacket fromHashes(Hash body, Hash stats) {
@@ -208,7 +216,7 @@ class BasicTwistPacket extends BasePacket {
 }
 
 class BasicBodyPacket extends BasePacket {
-  static Shape moniker = Shape.BASIC_BODY;
+  static Shape shape = Shape.BASIC_BODY;
   static String description = 'Six concatenated hashes';
 
   static BasicBodyPacket fromHashes(Hash prev, Hash teth, Hash shld, Hash reqs, Hash rigg, Hash cargo) {
@@ -311,7 +319,7 @@ class BasicBodyPacket extends BasePacket {
 
 // Cargo packets
 class ArbitraryPacket extends BasePacket {
-  static Shape moniker = Shape.ARB;
+  static Shape shape = Shape.ARB;
   static String description = 'Arbitrrary binary content';
 
   Uint8List getContents() {
@@ -323,7 +331,7 @@ class ArbitraryPacket extends BasePacket {
 }
 
 class HashesPacket extends BasePacket {
-  static Shape moniker = Shape.HASHES;
+  static Shape shape = Shape.HASHES;
   static String description = 'A list of one or more hashes concatonated';
 
   List<Hash> getHashes() {
@@ -361,7 +369,7 @@ class HashesPacket extends BasePacket {
 }
 
 class PairTriePacket extends BasePacket {
-  static Shape moniker = Shape.PAIRTRIE;
+  static Shape shape = Shape.PAIRTRIE;
   static String description = 'A map of hashes, expressed as a list of key, value pairs of hashes';
 
   Map<Hash, Hash> getPairTrie() {

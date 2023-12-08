@@ -8,10 +8,10 @@ class Twist extends BaseAtom {
     BasicTwistPacket twistPack = packet as BasicTwistPacket;
 
     return {
-      "algorithm": "",
+      "shape": BasicTwistPacket.shape.toNumber(),
       "hash": identifier.toHex(),
-      "body_hash": twistPack.getBodyHash().toHex(),
-      "stats_hash": twistPack.getStatsHash().toHex(),
+      "body": twistPack.getBodyHash().toHex(),
+      "stats": twistPack.getStatsHash().toHex(),
     };
   }
 
@@ -28,14 +28,14 @@ class TwistBody extends BaseAtom {
     BasicBodyPacket bodyPack = packet as BasicBodyPacket;
 
     return {
-      "algorithm": "",
+      "shape": BasicBodyPacket.shape.toNumber(),
       "hash": identifier.toHex(),
-      "prev_hash": bodyPack.getPrevHash().toHex(),
-      "teth_hash": bodyPack.getTethHash().toHex(),
-      "shield_hash": bodyPack.getShldHash().toHex(),
-      "req_hash": bodyPack.getRequirementsHash().toHex(),
-      "rigs_has": bodyPack.getRiggingHash().toHex(),
-      "cargo_hash": bodyPack.getCargoHash().toHex(),
+      "prev": bodyPack.getPrevHash().toHex(),
+      "teth": bodyPack.getTethHash().toHex(),
+      "shld": bodyPack.getShldHash().toHex(),
+      "reqs": bodyPack.getRequirementsHash().toHex(),
+      "rigs": bodyPack.getRiggingHash().toHex(),
+      "carg": bodyPack.getCargoHash().toHex(),
     };
   }
 

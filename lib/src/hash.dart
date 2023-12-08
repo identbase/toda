@@ -30,6 +30,14 @@ class Code /* implements ByteData */ {
     return builder.toBytes();
   }
 
+  String toString() {
+    return _data.toString();
+  }
+
+  int toNumber() {
+    return _data.getUint8(0);
+  }
+
   static Code NULL = new Code(0x00);
   static Code SYMBOL = new Code(0x22);
   static Code UNIT = new Code(0xFF);
