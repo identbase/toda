@@ -13,16 +13,18 @@ void main() {
         NullHash rigg = NullHash();
         NullHash cargo = NullHash();
 
-        BasicBodyPacket body = BasicBodyPacket.fromHashes(
+        BasicBodyPacket bodyPacket = BasicBodyPacket.fromHashes(
           prev, teth, shld, reqs, rigg, cargo,
         );
 
-        Hash bodyHash = ShaHash256.hash(body.toUint8List());
+        Hash bodyHash = ShaHash256.hash(bodyPacket.toUint8List());
         NullHash statsHash = NullHash();
 
         BasicTwistPacket packet = BasicTwistPacket.fromHashes(bodyHash, statsHash);
 
-        print(packet.toMap());
+        Twist twist = Twist(ShaHash256.hash(packet.toUint8List()), packet);
+
+        print(twist.toMap());
 
         expect(packet.toUint8List().length, equals(39));
         expect(packet.getBodyHash() == bodyHash, equals(true));

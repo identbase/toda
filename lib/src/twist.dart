@@ -10,8 +10,12 @@ class Twist extends BaseAtom {
     return {
       "shape": BasicTwistPacket.shape.toNumber(),
       "hash": identifier.toHex(),
-      "body": twistPack.getBodyHash().toHex(),
-      "stats": twistPack.getStatsHash().toHex(),
+      "body": twistPack.getBodyHash().toHex() != ""
+        ? twistPack.getBodyHash().toHex()
+        : 0,
+      "stats": twistPack.getStatsHash().toHex() != ""
+        ? twistPack.getStatsHash().toHex()
+        : 0,
     };
   }
 
@@ -30,12 +34,24 @@ class TwistBody extends BaseAtom {
     return {
       "shape": BasicBodyPacket.shape.toNumber(),
       "hash": identifier.toHex(),
-      "prev": bodyPack.getPrevHash().toHex(),
-      "teth": bodyPack.getTethHash().toHex(),
-      "shld": bodyPack.getShldHash().toHex(),
-      "reqs": bodyPack.getRequirementsHash().toHex(),
-      "rigs": bodyPack.getRiggingHash().toHex(),
-      "carg": bodyPack.getCargoHash().toHex(),
+      "prev": bodyPack.getPrevHash().toHex() != ""
+        ? bodyPack.getPrevHash().toHex()
+        : 0,
+      "teth": bodyPack.getTethHash().toHex() != ""
+        ? bodyPack.getTethHash().toHex()
+        : 0,
+      "shld": bodyPack.getShldHash().toHex() != ""
+        ? bodyPack.getShldHash().toHex()
+        : 0,
+      "reqs": bodyPack.getRequirementsHash().toHex() != ""
+        ? bodyPack.getRequirementsHash().toHex()
+        : 0,
+      "rigs": bodyPack.getRiggingHash().toHex() != ""
+        ? bodyPack.getRiggingHash().toHex()
+        : 0,
+      "carg": bodyPack.getCargoHash().toHex() != ""
+        ? bodyPack.getCargoHash().toHex()
+        : 0,
     };
   }
 

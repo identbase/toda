@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 
-import '../lib/toda.dart';
+import 'package:toda/toda.dart';
 
 void main() {
   group("BasicBodyPacket", () {
@@ -16,6 +16,10 @@ void main() {
         BasicBodyPacket packet = BasicBodyPacket.fromHashes(
           prev, teth, shld, reqs, rigg, cargo,
         );
+
+        TwistBody body = TwistBody(ShaHash256.hash(packet.toUint8List()), packet);
+
+        print(body.toMap());
 
         expect(packet.getPrevHash() == prev, equals(true));
         expect(packet.getTethHash() == teth, equals(true));
